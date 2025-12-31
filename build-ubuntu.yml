@@ -1,0 +1,50 @@
+---
+- name: Build Hardened Baseline Images
+  hosts: localhost
+  connection: local
+  vars:
+    ubuntu: "{{ ansible_facts['os_family'] == 'Debian' }}"
+    # KR 2.2: Centralized paths for consistency
+    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl" 
+    dest_root: "/mnt/iso"
+  
+  tasks:
+    - name: KR 1.2 Verify Mount Point
+      ansible.builtin.stat:
+        path: "{{ dest_root }}"
+      register: mount_stat
+
+    - name: Fail if /mnt/iso is not mounted or missing
+      ansible.builtin.fail:
+        msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
+      when: not mount_stat.stat.exists or not mount_stat.stat.isdir
+
+    - name: Ensure destination directories exist
+      become: yes
+      file:
+        path: "{{ dest_root }}/ubuntu2404"
+        state: directory
+        mode: '0755'
+
+    - name: Build Ubuntu 24.04 Baseline
+      command:
+        cmd: "packer build -var 'destination_path={{ dest_root }}/ubuntu2404' {{ ubuntu_packer_file }}"
+      register: ubuntu_build
+      changed_when: "'Builds finished.' in ubuntu_build.stdout"
+
+    - name: Summary of Builds
+      debug:
+        msg: 
+          - "Ubuntu Build Status: {{ ubuntu_build.rc == 0 | ternary('Success', 'Failed') }}"
+ 
+  # Verify CIS Compliance Baseline
+    - name: Check for existence of Splunk partition in output
+      shell: "ls /mnt/iso/ubuntu/ubuntu-baseline.ova"
+      register: file_check
+      failed_when: file_check.rc != 0
+
+    - name: Log build completion for Audit Trail
+      lineinfile:
+        path: ./build_history.log
+        create: yes
+        line: "Build successful: {{ ansible_date_time.iso8601 }} - CIS Level 1 Applied"

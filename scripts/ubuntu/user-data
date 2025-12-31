@@ -1,0 +1,65 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-baseline
+    # Password matches RHEL 9 Kickstart
+    password: "$6$qIIRuNbVy5YxGuZF$rZqqPZEBmvHCGWWwjA1lDAzkPdW53dLOP1TmQ5w4/uZ0SX0exOKODsR0z1Y0pCisKcHH3MUQMN3bbelX/FWjM0"
+    username: ubuntu
+  storage:
+    config:
+      - type: disk
+        id: disk-nvme0
+        ptable: gpt
+        path: /dev/nvme0n1
+        wipe: superblock-recursive
+      
+      # Boot Partitions
+      - type: partition
+        id: partition-boot
+        device: disk-nvme0
+        size: 1G
+        format: xfs
+        mount: /boot
+      - type: partition
+        id: partition-efi
+        device: disk-nvme0
+        size: 600M
+        format: vfat
+        mount: /boot/efi
+
+      # Physical Volumes (PVs)
+      - type: partition
+        id: pv-os
+        device: disk-nvme0
+        size: 80G   # Matches pv.01 (81928 MB)
+      - type: partition
+        id: pv-data
+        device: disk-nvme0
+        size: 200G  # Matches pv.02 (204804 MB)
+
+      # Volume Groups (VGs)
+      - type: lvm_volgroup
+        id: vg_os
+        name: vg_os
+        devices: [pv-os]
+      - type: lvm_volgroup
+        id: vg_data
+        name: vg_data
+        devices: [pv-data]
+
+      # Logical Volumes (LVs) for vg_os
+      - { type: lvm_partition, id: lv_root, name: root, volgroup: vg_os, size: 20G, format: xfs, mount: / }
+      - { type: lvm_partition, id: lv_home, name: home, volgroup: vg_os, size: 10G, format: xfs, mount: /home }
+      - { type: lvm_partition, id: lv_var, name: var, volgroup: vg_os, size: 10G, format: xfs, mount: /var }
+      - { type: lvm_partition, id: lv_log, name: log, volgroup: vg_os, size: 10G, format: xfs, mount: /var/log }
+      - { type: lvm_partition, id: lv_audit, name: audit, volgroup: vg_os, size: 5G, format: xfs, mount: /var/log/audit }
+      - { type: lvm_partition, id: lv_tmp, name: tmp, volgroup: vg_os, size: 5G, format: xfs, mount: /var/tmp }
+      - { type: lvm_partition, id: lv_opt, name: opt, volgroup: vg_os, size: 20G, format: xfs, mount: /opt }
+
+      # Logical Volumes (LVs) for vg_data
+      - { type: lvm_partition, id: lv_splunk, name: opt_splunk, volgroup: vg_data, size: 195G, format: xfs, mount: /opt/splunk }
+
+  ssh:
+    install-server: true
+    allow-pw: true

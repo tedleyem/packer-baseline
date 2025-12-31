@@ -1,0 +1,45 @@
+---
+- name: Post-Install Configuration
+  hosts: all
+  become: yes
+  tasks:
+    - name: "KR 1.2: Configure Internal Repositories"
+      copy:
+        dest: /etc/apt/sources.list.d/internal.list
+        content: |
+          deb [trusted=yes] https://repo.meralus.dev/ubuntu24/ jammy main
+          
+    - name: "KR 3.1: Install Core Dependencies"
+      apt:
+        name: 
+          - nfs-common
+          - net-tools
+          - rsync
+        state: present
+        update_cache: yes
+
+    - name: Create Splunk Data Directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /splunkdata/datamodel_data
+        - /splunkdata/hot_data
+        - /splunkdata/cold_data
+        - /emgtshare
+
+    - name: "Disable Root SSH Password login (CIS Requirement)"
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+
+    - name: Download and Run SSH Key Playbook
+      get_url:
+        url: https://repo.meralus.dev/ssh_key.yml
+        dest: /tmp/ssh_key.yml
+        validate_certs: no
+    
+    - name: Apply SSH Keys
+      command: ansible-playbook /tmp/ssh_key.yml

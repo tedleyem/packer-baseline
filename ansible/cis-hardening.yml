@@ -1,0 +1,182 @@
+- name: Ensure the system is up-to-date
+  block:
+- name: Update all packages on RHEL
+  yum:
+    name: "*"
+    state: latest
+  when: rhel
+
+- name: Update all packages on Ubuntu
+  apt:
+    update_cache: yes
+    upgrade: dist
+    autoremove: yes
+  when: ubuntu
+
+# 2. Disable unused filesystems
+- name: Disable unnecessary filesystems
+  block:
+- name: Ensure mounting of cramfs is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: "^install cramfs"
+    line: "install cramfs /bin/true"
+    create: yes
+
+- name: Ensure mounting of squashfs is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: "^install squashfs"
+    line: "install squashfs /bin/true"
+    create: yes
+
+- name: Ensure mounting of udf is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: "^install udf"
+    line: "install udf /bin/true"
+    create: yes
+
+# 3. Configure secure boot settings
+- name: Ensure secure boot settings are applied (RHEL and Ubuntu use GRUB2)
+  block:
+- name: Set permissions on /boot/grub2/grub.cfg
+  file:
+    path: /boot/grub2/grub.cfg
+    owner: root
+    group: root
+    mode: '0600'
+  when: rhel
+
+- name: Set permissions on /boot/grub/grub.cfg
+  file:
+    path: /boot/grub/grub.cfg
+    owner: root
+    group: root
+    mode: '0600'
+  when: ubuntu
+
+# 4. Enable and configure auditd
+- name: Enable and configure auditd
+  block:
+  - name: Install auditd on RHEL
+    yum:
+  - name: audit
+    state: present
+    when: rhel
+
+- name: Install auditd on Ubuntu
+  apt:
+    name: auditd
+    state: present
+  when: ubuntu
+
+- name: Ensure auditd service is enabled and running
+  service:
+    name: auditd
+    state: started
+    enabled: yes
+
+- name: Configure audit rules
+  copy:
+    dest: /etc/audit/rules.d/CIS.rules
+    content: |
+      ## Sample CIS Audit Rules
+      -w /etc/passwd -p wa -k identity
+      -w /etc/group -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/gshadow -p wa -k identity
+      -w /etc/sudoers -p wa -k actions
+      -w /var/log/lastlog -p wa -k logins
+      -e 2
+
+# 5. Configure file permissions
+- name: Ensure critical file permissions are set
+  block:
+- name: Ensure /etc/passwd permissions are set to 644
+  file:
+    path: /etc/passwd
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure /etc/shadow permissions are set to 600
+  file:
+    path: /etc/shadow
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Ensure /etc/group permissions are set to 644
+  file:
+    path: /etc/group
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure /etc/gshadow permissions are set to 600
+  file:
+    path: /etc/gshadow
+    owner: root
+    group: root
+    mode: '0600'
+
+# 6. Disable unused services
+- name: Disable unnecessary services
+  block:
+# Add/remove services based on environment
+- name: Disable telnet service
+  service:
+    name: telnet
+    state: stopped
+    enabled: no
+
+- name: Disable rsync daemon
+  service:
+    name: rsync
+    state: stopped
+    enabled: no
+
+# 7. Enable and configure a firewall
+- name: Ensure appropriate firewall rules are configured
+  block:
+- name: Install firewalld on RHEL
+  yum:
+    name: firewalld
+    state: present
+  when: rhel
+
+- name: Install ufw on Ubuntu
+  apt:
+    name: ufw
+    state: present
+  when: ubuntu
+
+- name: Configure firewalld on RHEL
+  firewalld:
+    zone: public
+    service: ssh
+    state: enabled
+  when: rhel
+
+- name: Configure ufw rules on Ubuntu
+  ufw:
+    rule: allow
+    port: 22
+    proto: tcp
+  when: ubuntu
+
+- name: Enable the firewall service
+  service:
+    name: "{{ 'firewalld' if rhel else 'ufw' }}"
+    state: started
+  enabled: yes
+
+# 8. Configure password policies
+- name: Ensure strong password policies
+  block:
+- name: Configure password policies on RHEL and Ubuntu
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: "^(password.*)"
+    line: "minlen = 14\nminclass = 4"

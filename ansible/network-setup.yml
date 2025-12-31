@@ -1,0 +1,51 @@
+---
+- name: Post-Deployment Networking and Storage
+  hosts: localhost
+  become: yes
+  vars:
+    # These are passed in during deployment, not hardcoded in the image
+    bond0_ip: "10.0.0.10/24"
+    bond2_ip: "10.0.2.10/24"
+    hostname: "splunk-node-01"
+
+  tasks:
+    - name: KR 2.2 - Configure Bond0 (Admin/Management)
+      nmcli:
+        conn_name: bond0
+        ifname: bond0
+        type: bond
+        mode: balance-alb
+        ip4: "{{ bond0_ip }}"
+        gw4: "{{ bond0_ip | ipaddr('network') | ipaddr(1) }}" # Auto-calculates gateway
+        state: present
+
+    - name: Add Bond0 Slaves
+      nmcli:
+        conn_name: "bond0-{{ item }}"
+        ifname: "{{ item }}"
+        type: bond-slave
+        master: bond0
+        state: present
+      loop: [ens3f0, ens3f1]
+
+    - name: KR 2.2 - Configure Bond2 (Data/Splunk)
+      nmcli:
+        conn_name: bond2
+        ifname: bond2
+        type: bond
+        mode: balance-alb
+        ip4: "{{ bond2_ip }}"
+        mtu: 8800
+        state: present
+
+    - name: Finalize Hostname
+      hostname:
+        name: "{{ hostname }}"
+
+    - name: KR 3.1 - Mount Splunk Storage
+      mount:
+        path: /splunkdata/hot_data
+        src: /dev/mapper/vg_data-splunkdata_hot
+        fstype: xfs
+        opts: defaults
+        state: mounted
