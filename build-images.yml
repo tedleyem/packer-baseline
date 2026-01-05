@@ -25,13 +25,13 @@
       when: not mount_stat.stat.exists or not mount_stat.stat.isdir
 
     - name: Ensure destination directories exist
-      become: yes
+      become: true
       file:
         path: "{{ item }}"
         state: directory
         mode: '0755'
       loop:
-        - "{{ dest_root }}/ubuntu2404"
+        - "{{ dest_root }}/ubuntu/2404"
         - "{{ dest_root }}/rhel9"
 
     - name: Build Ubuntu 24.04 Baseline
