@@ -4,7 +4,7 @@ autoinstall:
   identity:
     hostname: ubuntu-baseline
     # Password matches RHEL 9 Kickstart
-    password: "$6$qIIRuNbVy5YxGuZF$rZqqPZEBmvHCGWWwjA1lDAzkPdW53dLOP1TmQ5w4/uZ0SX0exOKODsR0z1Y0pCisKcHH3MUQMN3bbelX/FWjM0"
+    password: "$6$qIITuNbVy5YxGuZF$rZqqPZEBmvHCGWWwjA1lDAzkPdW53dLOP1TmQ5w4/uZ0SX0exOKODsR0z1Y0pCisKcHH3MUQMN3bbelX/FWjM0"
     username: ubuntu
   storage:
     config:
