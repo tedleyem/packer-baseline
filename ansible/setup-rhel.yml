@@ -1,7 +1,7 @@
 ---
 - name: Post-Install Configuration
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: "KR 1.2: Configure Internal Repositories"
       copy:

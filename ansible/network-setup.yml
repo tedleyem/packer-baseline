@@ -1,7 +1,7 @@
 ---
 - name: Post-Deployment Networking and Storage
   hosts: localhost
-  become: yes
+  become: true
   vars:
     # These are passed in during deployment, not hardcoded in the image
     bond0_ip: "10.0.0.10/24"
