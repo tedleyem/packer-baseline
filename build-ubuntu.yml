@@ -3,48 +3,91 @@
   hosts: localhost
   connection: local
   vars:
-    ubuntu: "{{ ansible_facts['os_family'] == 'Debian' }}"
-    # KR 2.2: Centralized paths for consistency
-    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl" 
-    dest_root: "/mnt/iso"
-  
+    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
+    cache_dir: "{{ playbook_dir }}/.cache/packer"
+    dest_root: "{{ playbook_dir }}/baseline-iso/mnt/output-iso/ubuntu/2404"
+    image_output: "ubuntu2404-custom.iso"
   tasks:
-    - name: KR 1.2 Verify Mount Point
+    - name: Ensure required QEMU and dependencies are installed
+      ansible.builtin.apt:
+        name:
+          - bridge-utils
+          - dnsmasq
+          - ebtables
+          - libvirt-clients
+          - libvirt-daemon-system
+          - qemu-kvm
+          - smbios-utils
+          - virt-manager
+          - virtinst
+        state: present
+        update_cache: yes
+      become: true
+      register: qemu_install
+
+    # Enable and Start the libvirtd Service
+    - name: Enable and ensure libvirtd service is running
+      ansible.builtin.service:
+        name: libvirtd
+        state: started
+        enabled: true
+      become: true
+
+    - name: Remove Packer cache directory before build
+      ansible.builtin.file:
+        path: "{{ cache_dir }}"
+        state: absent
+
+    # Verify Mount Point for Destination Path
+    - name: Verify destination directory exists
       ansible.builtin.stat:
         path: "{{ dest_root }}"
       register: mount_stat
 
-    - name: Fail if /mnt/iso is not mounted or missing
+    - name: Fail if destination directory is missing
       ansible.builtin.fail:
         msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
       when: not mount_stat.stat.exists or not mount_stat.stat.isdir
 
+    # Ensure Destination Sub-directory Exists
     - name: Ensure destination directories exist
-      become: yes
-      file:
-        path: "{{ dest_root }}/ubuntu2404"
+      ansible.builtin.file:
+        path: "{{ dest_root }}"
         state: directory
         mode: '0755'
+      become: true
 
-    - name: Build Ubuntu 24.04 Baseline
+    # Initialize Packer dependancies for Custom Image
+    - name: Build Ubuntu 24.04 Baseline ISO
       command:
-        cmd: "packer build -var 'destination_path={{ dest_root }}/ubuntu2404' {{ ubuntu_packer_file }}"
+        cmd: "packer init {{ ubuntu_packer_file }}" 
+
+    # Build Ubuntu 24.04 Baseline Image with Packer
+    - name: Build Ubuntu 24.04 Baseline ISO
+      command:
+        cmd: "packer build -var 'destination_path={{ dest_root }}' {{ ubuntu_packer_file }}"
       register: ubuntu_build
       changed_when: "'Builds finished.' in ubuntu_build.stdout"
+      environment:
+        PACKER_LOG: "1"
+        PACKER_LOG_PATH: "./packer_build.log"
 
-    - name: Summary of Builds
-      debug:
-        msg: 
-          - "Ubuntu Build Status: {{ ubuntu_build.rc == 0 | ternary('Success', 'Failed') }}"
- 
-  # Verify CIS Compliance Baseline
-    - name: Check for existence of Splunk partition in output
-      shell: "ls /mnt/iso/ubuntu/ubuntu-baseline.ova"
-      register: file_check
-      failed_when: file_check.rc != 0
+    # Show Full Output of the Packer Build
+    - name: Show full output of the Packer build
+      ansible.builtin.debug:
+        msg: "{{ ubuntu_build.stdout }}"
 
-    - name: Log build completion for Audit Trail
+    # Verify the Generated ISO File
+    - name: Check if Ubuntu Custom ISO Exists
+      ansible.builtin.stat:
+        path: "{{ dest_root }}/{{ image_output }}"
+      register: iso_file_check
+      failed_when: not iso_file_check.stat.exists
+
+    # Log Build Completion for Audit Trail
+    - name: Log build completion for audit trail
       lineinfile:
         path: ./build_history.log
         create: yes
         line: "Build successful: {{ ansible_date_time.iso8601 }} - CIS Level 1 Applied"
+      when: iso_file_check.stat.exists

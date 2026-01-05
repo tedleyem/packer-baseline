@@ -1,51 +1,90 @@
 ---
-- name: Build Hardened Baseline Images
+- name: Build Hardened Baseline ISO
   hosts: localhost
   connection: local
   vars:
-    rhel: "{{ ansible_facts['os_family'] == 'RedHat' }}"
-    # KR 2.2: Centralized paths for consistency
-    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
-    rhel_packer_file: "rhel9-baseline.pkr.hcl"
-    dest_root: "/mnt/iso"
-  
+    rhel_packer_file: "rhel-baseline.pkr.hcl"
+    cache_dir: "{{ playbook_dir }}/.cache/packer"
+    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/rhel9"
+    ansible_python_interpreter: /usr/bin/python3
+    image_output: "rhel9-custom.iso"
   tasks:
-    - name: KR 1.2 Verify Mount Point
+    - name: Ensure python3-dnf is installed for Ansible
+      ansible.builtin.yum:
+        name: python3-dnf
+        state: present
+
+    - name: Ensure required QEMU and dependencies are installed
+      ansible.builtin.yum:
+        name:
+          - bridge-utils
+          - dnsmasq
+          - ebtables
+          - libvirt
+          - libvirt-client
+          - libvirt-daemon
+          - qemu-kvm
+          - virt-install
+          - virt-manager
+        state: present
+      become: true
+
+    - name: Start and enable libvirtd service
+      ansible.builtin.service:
+        name: libvirtd
+        state: started
+        enabled: true
+      become: true
+
+    - name: Remove Packer cache directory before build
+      ansible.builtin.file:
+        path: "{{ cache_dir }}"
+        state: absent
+
+    - name: Verify destination directory exists
       ansible.builtin.stat:
         path: "{{ dest_root }}"
       register: mount_stat
 
-    - name: Fail if /mnt/iso is not mounted or missing
+    - name: Fail if destination directory is missing
       ansible.builtin.fail:
         msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
       when: not mount_stat.stat.exists or not mount_stat.stat.isdir
 
     - name: Ensure destination directories exist
-      become: yes
       file:
-        path: "{{ dest_root }}/rhel9"
+        path: "{{ dest_root }}"
         state: directory
         mode: '0755'
+      become: true
 
-    - name: Build RHEL 9 Baseline
+    # Initialize Packer dependancies for Custom Image
+    - name: Build RedHat Baseline ISO
       command:
-        cmd: "packer build -var 'destination_path={{ dest_root }}/rhel9' {{ rhel_packer_file }}"
+        cmd: "packer init {{ ubuntu_packer_file }}" 
+
+    - name: Build Custom Bootable RHEL 9 ISO
+      command:
+        cmd: "packer build -var 'destination_path={{ dest_root }}' {{ rhel_packer_file }}"
       register: rhel_build
       changed_when: "'Builds finished.' in rhel_build.stdout"
+      environment:
+        PACKER_LOG: "1"
+        PACKER_LOG_PATH: "./packer_build.log"
 
-    - name: Summary of Builds
-      debug:
-        msg:
-          - "RHEL Build Status: {{ rhel_build.rc == 0 | ternary('Success', 'Failed') }}"
+    - name: Show full output of the Packer build
+      ansible.builtin.debug:
+        msg: "{{ rhel_build.stdout }}"
 
-  # Verify CIS Compliance Baseline
-    - name: Check for existence of Splunk partition in output
-      shell: "ls /mnt/iso/rhel9/rhel9-baseline.ova"
-      register: file_check
-      failed_when: file_check.rc != 0
+    - name: Check if Custom RHEL9 ISO Exists
+      ansible.builtin.stat:
+        path: "{{ dest_root }}/{{ image_output }}"
+      register: iso_file_check
+      failed_when: not iso_file_check.stat.exists
 
-    - name: Log build completion for Audit Trail
+    - name: Log build completion for audit trail
       lineinfile:
         path: ./build_history.log
         create: yes
-        line: "Build successful: {{ ansible_date_time.iso8601 }} - CIS Level 1 Applied"
+        line: "Build successful: {{ ansible_date_time.iso8601 }} - ISO created successfully"
+      when: iso_file_check.stat.exists
