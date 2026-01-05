@@ -1,9 +1,9 @@
 packer {
   required_version = ">= 1.7.0"
   required_plugins {
-    virtualbox = {
-      version = ">= 0.0.1"
-      source  = "github.com/hashicorp/virtualbox"
+    qemu = {
+      version = ">= 1.1.4"
+      source  = "github.com/hashicorp/qemu"
     }
     ansible = {
       version = ">= 1.1.0"
@@ -14,50 +14,48 @@ packer {
 
 variable "ssh_password" {
   type    = string
-  default = "your_iscrypted_password_here"
+  default = "wohbae6euchahj4eiL9aghi6"
 }
 
 variable "destination_path" {
   type    = string
-  default = "/Users/meralust/projects/hs-linux/configuration/mnt/iso/rhel9"
+  default = "./output-iso/rhel9"
 }
 
 variable "iso_url" {
   type    = string
-  default = "https://repo.meralus.dev/iso/rhel-baseos-9.0-x86_64-dvd-ks.iso"
+  default = "https://repo.meralus.dev/iso/rhel-9.4-x86_64-boot.iso"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "none"
+  default = "sha256:17b013f605e6b85affd37431b533b6904541f8b889179ae3f99e1e480dd4ae38"
 }
 
-source "virtualbox-iso" "rhel9" {
+source "qemu" "rhel9" {
+  iso_url      = var.iso_url
+  iso_checksum = var.iso_checksum
+  communicator = "none" # No clean OS with SSH ensures we only stage the ISO
   boot_command = [
     "<tab><wait>",
     " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg",
     "<enter>"
   ]
-  boot_wait      = "10s"
-  cpus           = 2
-  memory         = 4096
-  disk_size      = 50000
-  guest_os_type  = "RedHat_64"
-  http_directory = "scripts/rhel"
-
-  iso_url      = var.iso_url
-  iso_checksum = var.iso_checksum
-
-  output_directory = "output-rhel-build"
-  shutdown_command = "echo '${var.ssh_password}' | sudo -S shutdown -P now"
-  ssh_username     = "root"
-  ssh_password     = var.ssh_password
-  ssh_timeout      = "30m"
+  boot_wait      = "5s"
+  disk_size      = 50000    # 20GB disk size
+  memory         = 2048     # 2GB Memory
+  cpus           = 2        # 2 CPUs
+  output_directory = "/tmp/rhel9-build-output" # Temporary build artifacts
 }
 
 build {
-  sources = ["source.virtualbox-iso.rhel9"]
+  sources = ["source.qemu.rhel9"]
 
+  // Provision: No additional OS setup since we're generating ISO
+  provisioner "shell" {
+    inline = ["echo 'Preparing ISO Creation Based on QEMU Artifacts'"]
+  }
+  
   // Apply CIS Benchmarks
   provisioner "ansible" {
     playbook_file   = "./ansible/setup-rhel.yml"
@@ -74,22 +72,29 @@ build {
     extra_arguments = ["--extra-vars", "ansible_sudo_pass=${var.ssh_password}"]
   }
 
-  // System Prep
-  provisioner "shell" {
-    inline = [
-      "mkdir -p /splunkdata/{hot_data,cold_data,datamodel_data}",
-      "dnf clean all",
-      "rm -rf /etc/udev/rules.d/70-persistent-net.rules",
-      "truncate -s 0 /etc/machine-id"
-    ]
-  }
 
-  // Final Artifact Handling
+  // Final Custom Bootable ISO - Post-Processing
   post-processor "shell-local" {
     inline = [
-      "sudo mkdir -p ${var.destination_path}",
-      "sudo mv output-rhel-build/*.ova ${var.destination_path}/rhel9-baseline-{{timestamp}}.ova",
-      "sudo chown -R $USER:$USER ${var.destination_path}"
+      # Create stage directory to extract base ISO and inject custom files
+      "mkdir -p /tmp/rhel9-iso-stage && cd /tmp/rhel9-iso-stage",
+      "cp -r $(mktemp -d)/* /tmp/rhel9-iso-stage",
+
+      # Mount base ISO and copy contents into stage directory
+      "mkdir -p /mnt/rhel9-iso",
+      "sudo mount -o loop ${var.iso_url} /mnt/rhel9-iso",
+      "cp -r /mnt/rhel9-iso/* .",
+      "sudo umount /mnt/rhel9-iso",
+
+      # Inject Kickstart configuration
+      "cp ${var.destination_path}/scripts/rhel/ks.cfg isolinux/ks.cfg",
+
+      # Rebuild custom ISO
+      "mkisofs -U -A rhel9-custom-iso -V 'RHEL9_CUSTOM' -volset 'RHEL9_CUSTOM' -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ${var.destination_path}/rhel9-custom.iso .",
+
+      # Clean up temporary directories
+      "rm -rf /tmp/rhel9-build-output",
+      "rm -rf /tmp/rhel9-iso-stage"
     ]
   }
 }
