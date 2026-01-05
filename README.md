@@ -1,4 +1,4 @@
-# Creating Ubuntu 24.04 baseline and image
+# Creating Ubuntu 24.04 baseline and image 
 
 ### Ubuntu and RedHat Image Builder
 Instead of manually clicking through an installer, we use Hashicorps Packer method to utilize to ensure every image we build are identical and meets our repeatable.
