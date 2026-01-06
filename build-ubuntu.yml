@@ -5,7 +5,7 @@
   vars:
     ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
-    dest_root: "{{ playbook_dir }}/baseline-iso/mnt/output-iso/ubuntu/2404"
+    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/ubuntu/2404"
     image_output: "ubuntu2404-custom.iso"
   tasks:
     - name: Ensure required QEMU and dependencies are installed
@@ -17,7 +17,7 @@
           - libvirt-clients
           - libvirt-daemon-system
           - qemu-kvm
-          - smbios-utils
+          #- smbios-utils
           - virt-manager
           - virtinst
         state: present
