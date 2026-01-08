@@ -24,12 +24,12 @@ variable "destination_path" {
 
 variable "iso_url" {
   type    = string
-  default = "https://repo.meralus.dev/iso/rhel-9.4-x86_64-boot.iso"
+  default = "https://gitlab.com/tedleyem/repo.meralus.dev/rhel-9-x86_64-20260107-2319.iso"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "sha256:17b013f605e6b85affd37431b533b6904541f8b889179ae3f99e1e480dd4ae38"
+  default = "11b56483dd1c69ddf46832becd195d68b67b4472fcfade1ac4b27c57c72f773e"
 }
 
 source "qemu" "rhel9" {
