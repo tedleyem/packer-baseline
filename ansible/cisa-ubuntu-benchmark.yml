@@ -1,0 +1,54 @@
+---
+- name: CISA Ubuntu 24.04 Benchmark Playbook
+  hosts: ubuntu
+  tasks:
+
+  ### 1. Update all packages ###
+  - name: Update and upgrade all packages
+    apt:
+      update_cache: yes
+      upgrade: dist
+
+  ### 2. Configure Secure Boot ###
+  - name: Set permissions for GRUB configuration
+    file:
+      path: /boot/grub/grub.cfg
+      owner: root
+      group: root
+      mode: '0600'
+
+  ### 3. Configure auditd ###
+  - name: Ensure auditd is installed and running
+    block:
+      - name: Install auditd
+        apt:
+          name: auditd
+          state: present
+
+      - name: Ensure auditd service is running
+        service:
+          name: auditd
+          state: started
+          enabled: yes
+
+      - name: Add recommended audit rules
+        lineinfile:
+          path: /etc/audit/rules.d/CISA.rules
+          line: "-w /etc/passwd -p wa -k identity"
+
+  ### 4. Set File Permissions ###
+  - name: Enforce secure file permissions on critical files
+    block:
+      - name: Set permissions on /etc/passwd
+        file:
+          path: /etc/passwd
+          owner: root
+          group: root
+          mode: '0644'
+
+      - name: Set permissions on /etc/shadow
+        file:
+          path: /etc/shadow
+          owner: root
+          group: root
+          mode: '0600'
