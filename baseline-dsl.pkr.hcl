@@ -49,7 +49,7 @@ source "qemu" "dsl-test" {
   memory         = 2048  # 2GB Memory
   cpus           = 2     # 2 CPUs
   output_directory = "/tmp/dsl-test-build-output" # Temporary build artifacts
-  headless         = false # set to true to disable GUI
+  headless         = true # set to true to disable GUI
   boot_wait      = "5s"
   boot_command = [
     # 1. Wait for the boot menu to appear, then hit Tab to edit
