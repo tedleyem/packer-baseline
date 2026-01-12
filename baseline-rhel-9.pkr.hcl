@@ -24,7 +24,7 @@ variable "destination_path" {
 
 variable "iso_url" {
   type    = string
-  default = "https://gitlab.com/tedleyem/repo.meralus.dev/rhel-9-x86_64-20260107-2319.iso"
+  default = "https://repo.meralus.dev/rhel-10.0-x86_64-boot.iso"
 }
 
 variable "iso_checksum" {
