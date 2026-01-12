@@ -1,0 +1,126 @@
+---
+- name: Build Hardened Baseline Images on macOS Without sudo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    brew_qemu_dependencies:
+      - qemu
+      - virt-manager
+      - dnsmasq
+      - xorriso
+      - mkisofs
+    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
+    rhel_packer_file: "rhel-baseline.pkr.hcl"
+    cache_dir: "{{ playbook_dir }}/.cache/packer"
+    dest_root_ubuntu: "{{ playbook_dir }}/baseline-iso/ubuntu/2404"
+    dest_root_rhel: "{{ playbook_dir }}/baseline-iso/rhel/9"
+    ubuntu_image_output: "ubuntu2404-custom.iso"
+    rhel_image_output: "rhel9-custom.iso"
+
+  tasks:
+    # Ensure Homebrew is Installed
+    #- name: Ensure Homebrew is installed
+    #  ansible.builtin.shell: |
+    #    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    #  args:
+    #    executable: /bin/bash
+    #    creates: /usr/local/bin/brew
+    #  register: brew_install
+    #  changed_when: "'Homebrew installed' in brew_install.stdout or 'up-to-date' in brew_install.stdout"
+
+    # Install QEMU and Dependencies Without sudo
+    - name: Ensure required QEMU and dependencies are installed
+      ansible.builtin.shell: |
+        brew install {{ item }}
+      loop: "{{ brew_qemu_dependencies }}"
+      register: brew_qemu_install
+      changed_when: '"successfully installed" in brew_qemu_install.stdout'
+
+    # Remove Packer Cache Directory (No sudo required since we're within user-owned paths)
+    - name: Remove Packer cache directory before build
+      ansible.builtin.file:
+        path: "{{ cache_dir }}"
+        state: absent
+
+    # Ensure Destination Path for Ubuntu Exists
+    - name: Verify destination directory for Ubuntu
+      ansible.builtin.file:
+        path: "{{ dest_root_ubuntu }}"
+        state: directory
+        mode: '0755'
+
+    # Build Ubuntu 24.04 Baseline ISO
+    - name: Build Ubuntu 24.04 Baseline ISO - Initialize Packer
+      ansible.builtin.command:
+        cmd: "packer init {{ ubuntu_packer_file }}" 
+
+    - name: Build Ubuntu 24.04 Baseline ISO - Run Packer Build
+      ansible.builtin.command:
+        cmd: "packer build -var 'destination_path={{ dest_root_ubuntu }}' {{ ubuntu_packer_file }}"
+      register: ubuntu_build
+      changed_when: "'Builds finished.' in ubuntu_build.stdout"
+      environment:
+        PACKER_LOG: "1"
+        PACKER_LOG_PATH: "./packer_build.log"
+
+    # Show Ubuntu Build Output
+    - name: Display Packer build output for Ubuntu
+      ansible.builtin.debug:
+        msg: "{{ ubuntu_build.stdout }}"
+
+    # Check if the Custom Ubuntu ISO Exists
+    - name: Verify if the custom Ubuntu ISO exists
+      ansible.builtin.stat:
+        path: "{{ dest_root_ubuntu }}/{{ ubuntu_image_output }}"
+      register: ubuntu_iso_check
+      failed_when: not ubuntu_iso_check.stat.exists
+
+    # Ensure Destination Path for RHEL Exists
+    - name: Verify destination directory for RHEL
+      ansible.builtin.file:
+        path: "{{ dest_root_rhel }}"
+        state: directory
+        mode: '0755'
+
+    # Build RHEL 9 Baseline ISO
+    - name: Build RHEL 9 Baseline ISO - Initialize Packer
+      ansible.builtin.command:
+        cmd: "packer init {{ rhel_packer_file }}" 
+
+    - name: Build RHEL 9 Baseline ISO - Run Packer Build
+      ansible.builtin.command:
+        cmd: "packer build -var 'destination_path={{ dest_root_rhel }}' {{ rhel_packer_file }}"
+      register: rhel_build
+      changed_when: "'Builds finished.' in rhel_build.stdout"
+      environment:
+        PACKER_LOG: "1"
+        PACKER_LOG_PATH: "./packer_build.log"
+
+    # Show RHEL Build Output
+    - name: Display Packer build output for RHEL
+      ansible.builtin.debug:
+        msg: "{{ rhel_build.stdout }}"
+
+    # Check if the Custom RHEL ISO Exists
+    - name: Verify if the custom RHEL ISO exists
+      ansible.builtin.stat:
+        path: "{{ dest_root_rhel }}/{{ rhel_image_output }}"
+      register: rhel_iso_check
+      failed_when: not rhel_iso_check.stat.exists
+
+    # Log Ubuntu Build Completion
+    - name: Log Ubuntu build completion
+      ansible.builtin.lineinfile:
+        path: "./build_history.log"
+        create: yes
+        line: "Ubuntu Build Successful: {{ ansible_date_time.iso8601 }} - CIS Level 1 Applied"
+      when: ubuntu_iso_check.stat.exists
+
+    # Log RHEL Build Completion
+    - name: Log RHEL build completion
+      ansible.builtin.lineinfile:
+        path: "./build_history.log"
+        create: yes
+        line: "RHEL Build Successful: {{ ansible_date_time.iso8601 }} - CIS Level 1 Applied"
+      when: rhel_iso_check.stat.exists
