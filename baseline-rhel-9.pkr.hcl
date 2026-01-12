@@ -14,7 +14,7 @@ packer {
 
 variable "ssh_password" {
   type    = string
-  default = "wohbae6euchahj4eiL9aghi6"
+  default = "P@ssW0rd!"
 }
 
 variable "destination_path" {
@@ -76,25 +76,14 @@ build {
   // Final Custom Bootable ISO - Post-Processing
   post-processor "shell-local" {
     inline = [
-      # Create stage directory to extract base ISO and inject custom files
-      "mkdir -p /tmp/rhel9-iso-stage && cd /tmp/rhel9-iso-stage",
-      "cp -r $(mktemp -d)/* /tmp/rhel9-iso-stage",
-
-      # Mount base ISO and copy contents into stage directory
+      "mkdir -p /tmp/rhel9-iso-stage",
       "mkdir -p /mnt/rhel9-iso",
       "sudo mount -o loop ${var.iso_url} /mnt/rhel9-iso",
-      "cp -r /mnt/rhel9-iso/* .",
+      "cp -r /mnt/rhel9-iso/* /tmp/rhel9-iso-stage",
       "sudo umount /mnt/rhel9-iso",
-
-      # Inject Kickstart configuration
-      "cp ${var.destination_path}/scripts/rhel/ks.cfg isolinux/ks.cfg",
-
-      # Rebuild custom ISO
-      "mkisofs -U -A rhel9-custom-iso -V 'RHEL9_CUSTOM' -volset 'RHEL9_CUSTOM' -J -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ${var.destination_path}/rhel9-custom.iso .",
-
-      # Clean up temporary directories
-      "rm -rf /tmp/rhel9-build-output",
-      "rm -rf /tmp/rhel9-iso-stage"
+      "cp ${var.destination_path}/scripts/rhel/ks.cfg /tmp/rhel9-iso-stage/isolinux/ks.cfg",
+      "xorriso -as mkisofs -o ${var.destination_path}/rhel9-custom.iso -J -R -V 'RHEL9_CUSTOM' -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table /tmp/rhel9-iso-stage",
+      "rm -rf /tmp/rhel9-build-output /tmp/rhel9-iso-stage"
     ]
   }
 }
