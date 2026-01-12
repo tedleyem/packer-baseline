@@ -5,9 +5,9 @@
   vars:
     rhel_packer_file: "rhel-baseline.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
-    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/rhel9"
+    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/rhel/ten"
     ansible_python_interpreter: /usr/bin/python3
-    image_output: "rhel9-custom.iso"
+    image_output: "rhel-custom.iso"
   tasks:
     - name: Ensure python3-dnf is installed for Ansible
       ansible.builtin.yum:

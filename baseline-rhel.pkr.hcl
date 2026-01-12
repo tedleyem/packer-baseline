@@ -14,25 +14,25 @@ packer {
 
 variable "ssh_password" {
   type    = string
-  default = "P@ssW0rd!"
+  default = "wohbae6euchahj4eiL9aghi6"
 }
 
 variable "destination_path" {
   type    = string
-  default = "./output-iso/rhel9"
+  default = "./output-iso/rhel"
 }
 
 variable "iso_url" {
   type    = string
-  default = "https://repo.meralus.dev/rhel-10.0-x86_64-boot.iso"
+  default = "https://gitlab.com/tedleyem/repo.meralus.dev/-/package_files/258387539/download"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "11b56483dd1c69ddf46832becd195d68b67b4472fcfade1ac4b27c57c72f773e"
+  default = "008eff6d005e0e418da2dc06ad323f099e02749f32d8074593abdeae4763a0fb"
 }
 
-source "qemu" "rhel9" {
+source "qemu" "rhel" {
   iso_url      = var.iso_url
   iso_checksum = var.iso_checksum
   communicator = "none" # No clean OS with SSH ensures we only stage the ISO
@@ -45,11 +45,11 @@ source "qemu" "rhel9" {
   disk_size      = 50000    # 20GB disk size
   memory         = 2048     # 2GB Memory
   cpus           = 2        # 2 CPUs
-  output_directory = "/tmp/rhel9-build-output" # Temporary build artifacts
+  output_directory = "/tmp/rhel-build-output" # Temporary build artifacts
 }
 
 build {
-  sources = ["source.qemu.rhel9"]
+  sources = ["source.qemu.rhel"]
 
   // Provision: No additional OS setup since we're generating ISO
   provisioner "shell" {
@@ -76,14 +76,14 @@ build {
   // Final Custom Bootable ISO - Post-Processing
   post-processor "shell-local" {
     inline = [
-      "mkdir -p /tmp/rhel9-iso-stage",
-      "mkdir -p /mnt/rhel9-iso",
-      "sudo mount -o loop ${var.iso_url} /mnt/rhel9-iso",
-      "cp -r /mnt/rhel9-iso/* /tmp/rhel9-iso-stage",
-      "sudo umount /mnt/rhel9-iso",
-      "cp ${var.destination_path}/scripts/rhel/ks.cfg /tmp/rhel9-iso-stage/isolinux/ks.cfg",
-      "xorriso -as mkisofs -o ${var.destination_path}/rhel9-custom.iso -J -R -V 'RHEL9_CUSTOM' -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table /tmp/rhel9-iso-stage",
-      "rm -rf /tmp/rhel9-build-output /tmp/rhel9-iso-stage"
+      "mkdir -p /tmp/rhel-iso-stage",
+      "mkdir -p /mnt/rhel-iso",
+      "sudo mount -o loop ${var.iso_url} /mnt/rhel-iso",
+      "cp -r /mnt/rhel-iso/* /tmp/rhel-iso-stage",
+      "sudo umount /mnt/rhel-iso",
+      "cp ${var.destination_path}/scripts/rhel/ks.cfg /tmp/rhel-iso-stage/isolinux/ks.cfg",
+      "xorriso -as mkisofs -o ${var.destination_path}/rhel-custom.iso -J -R -V 'rhel_CUSTOM' -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table /tmp/rhel-iso-stage",
+      "rm -rf /tmp/rhel-build-output /tmp/rhel-iso-stage"
     ]
   }
 }
