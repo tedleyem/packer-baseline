@@ -1,12 +1,13 @@
 ---
 - name: Build Hardened Baseline Images
-  hosts: localhost
+  hosts: '{{ ansible_limit }}'
   connection: local
   vars:
     ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
-    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/ubuntu/2404"
+    dest_root: "{{ playbook_dir }}/baseline-iso/mnt/output-iso/ubuntu/2404"
     image_output: "ubuntu2404-custom.iso"
+    ubuntu: "{{ ansible_distribution == 'Ubuntu' }}"
   tasks:
     - name: Ensure required QEMU and dependencies are installed
       ansible.builtin.apt:
@@ -14,12 +15,15 @@
           - bridge-utils
           - dnsmasq
           - ebtables
+          - genisoimage
           - libvirt-clients
           - libvirt-daemon-system
           - qemu-kvm
-          #- smbios-utils
+          - smbios-utils
+          - virt-install
           - virt-manager
           - virtinst
+          - xorriso
         state: present
         update_cache: yes
       become: true
@@ -70,7 +74,7 @@
       changed_when: "'Builds finished.' in ubuntu_build.stdout"
       environment:
         PACKER_LOG: "1"
-        PACKER_LOG_PATH: "./packer_build.log"
+        PACKER_LOG_PATH: "./logs/packer-ubuntu-build.log"
 
     # Show Full Output of the Packer Build
     - name: Show full output of the Packer build

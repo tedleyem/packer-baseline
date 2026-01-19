@@ -1,13 +1,14 @@
 ---
 - name: Build Hardened Baseline ISO
-  hosts: localhost
+  hosts: '{{ ansible_limit }}'
   connection: local
   vars:
     rhel_packer_file: "rhel-baseline.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
-    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/rhel/ten"
+    dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/redhat/rhel9"
     ansible_python_interpreter: /usr/bin/python3
-    image_output: "rhel-custom.iso"
+    image_output: "rhel9-custom.iso"
+    rhel: "{{ ansible_os_family == 'RedHat' }}"
   tasks:
     - name: Ensure python3-dnf is installed for Ansible
       ansible.builtin.yum:
@@ -20,12 +21,14 @@
           - bridge-utils
           - dnsmasq
           - ebtables
+          - genisoimage
           - libvirt
           - libvirt-client
           - libvirt-daemon
           - qemu-kvm
           - virt-install
           - virt-manager
+          - xorriso
         state: present
       become: true
 
@@ -65,12 +68,12 @@
 
     - name: Build Custom Bootable RHEL 9 ISO
       command:
-        cmd: "packer build -var 'destination_path={{ dest_root }}' {{ rhel_packer_file }}"
+        cmd: "/usr/bin/packer build -var 'destination_path={{ dest_root }}' {{ rhel_packer_file }}"
       register: rhel_build
       changed_when: "'Builds finished.' in rhel_build.stdout"
       environment:
         PACKER_LOG: "1"
-        PACKER_LOG_PATH: "./packer_build.log"
+        PACKER_LOG_PATH: "./logs/packer-rhel-build.log"
 
     - name: Show full output of the Packer build
       ansible.builtin.debug:

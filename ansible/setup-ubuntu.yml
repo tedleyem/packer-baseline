@@ -7,7 +7,7 @@
       copy:
         dest: /etc/apt/sources.list.d/internal.list
         content: |
-          deb [trusted=yes] https://repo.meralus.dev/ubuntu24/ jammy main
+          deb [trusted=yes] https://mgtp-repo01.dcs.leidos.com/ubuntu24/ jammy main
           
     - name: "KR 3.1: Install Core Dependencies"
       apt:
@@ -37,7 +37,7 @@
 
     - name: Download and Run SSH Key Playbook
       get_url:
-        url: https://repo.meralus.dev/ssh_key.yml
+        url: https://mgtp-ubrepo01.dcs.leidos.com/ssh_key.yml
         dest: /tmp/ssh_key.yml
         validate_certs: no
     
