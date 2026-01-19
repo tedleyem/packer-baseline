@@ -1,6 +1,6 @@
 ---
 - name: Build Hardened Baseline Images
-  hosts: '{{ ansible_limit }}'
+  hosts: localhost
   connection: local
   vars:
     ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
@@ -19,6 +19,8 @@
           - libvirt-clients
           - libvirt-daemon-system
           - qemu-kvm
+          - qemu-system-x86
+          - qemu-utils
           - smbios-utils
           - virt-install
           - virt-manager
