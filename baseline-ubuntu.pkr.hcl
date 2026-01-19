@@ -27,7 +27,7 @@ variable "destination_path" {
 # URL and checksum of the Ubuntu 24.04 ISO
 variable "iso_url" {
   type    = string
-  default = "https://releases.ubuntu.com/24.04/ubuntu-24.04.2-live-server-amd64.iso"
+  default = "https://releases.ubuntu.com/24.04/ubuntu-24.04.3-live-server-amd64.iso"
 }
 
 variable "iso_checksum" {
@@ -59,7 +59,9 @@ source "qemu" "ubuntu-24-04" {
   ssh_password     = var.ssh_password
   ssh_timeout      = "20m"
   format           = "qcow2"       # Use QCOW2 format for QEMU
-  accelerator      = "hvf"         # Use Hypervisor.framework since this is macOS
+  accelerator      = "kvm"
+  headless         = "true"
+#  accelerator      = "hvf" # Use Hypervisor.framework since this is macOS
 }
 
 # Build steps
@@ -69,11 +71,6 @@ build {
   # Provisioning with Ansible
   provisioner "ansible" {
     playbook_file   = "./ansible/setup-ubuntu.yml"
-    extra_arguments = ["--extra-vars", "ansible_sudo_pass=${var.ssh_password}"]
-  }
-
-  provisioner "ansible" {
-    playbook_file   = "./ansible/network-setup.yml"
     extra_arguments = ["--extra-vars", "ansible_sudo_pass=${var.ssh_password}"]
   }
 
