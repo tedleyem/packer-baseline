@@ -1,6 +1,6 @@
 ---
 - name: Build Hardened Baseline ISO
-  hosts: '{{ ansible_limit }}'
+  hosts: localhost
   connection: local
   vars:
     rhel_packer_file: "rhel-baseline.pkr.hcl"
