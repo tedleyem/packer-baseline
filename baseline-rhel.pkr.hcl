@@ -29,7 +29,7 @@ variable "iso_url" {
 
 variable "iso_checksum" {
   type    = string
-  default = "008eff6d005e0e418da2dc06ad323f099e02749f32d8074593abdeae4763a0fb"
+  default = "file:https://gitlab.com/tedleyem/repo.meralus.dev/-/raw/master/checksums/rhel/SHA256SUMS?ref_type=heads&inline=false"
 }
 
 source "qemu" "rhel" {
@@ -59,11 +59,6 @@ build {
   // Apply CIS Benchmarks
   provisioner "ansible" {
     playbook_file   = "./ansible/setup-rhel.yml"
-    extra_arguments = ["--extra-vars", "ansible_sudo_pass=${var.ssh_password}"]
-  }
-  // setup networking
-  provisioner "ansible" {
-    playbook_file   = "./ansible/network-setup.yml"
     extra_arguments = ["--extra-vars", "ansible_sudo_pass=${var.ssh_password}"]
   }
   // Apply CIS Hardening
