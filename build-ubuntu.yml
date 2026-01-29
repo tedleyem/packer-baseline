@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars:
-    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
+    ubuntu_packer_file: "baseline-ubuntu.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
     dest_root: "{{ playbook_dir }}/output-iso/ubuntu"
     image_output: "ubuntu2404-custom.iso"
@@ -63,12 +63,12 @@
       #become: true
 
     # Initialize Packer dependancies for Custom Image
-    - name: Build Ubuntu 24.04 Baseline ISO
+    - name: Build Ubuntu Baseline ISO
       command:
         cmd: "packer init {{ ubuntu_packer_file }}" 
 
-    # Build Ubuntu 24.04 Baseline Image with Packer
-    - name: Build Ubuntu 24.04 Baseline ISO
+    # Build Ubuntu Baseline Image with Packer
+    - name: Build Ubuntu Baseline ISO
       command:
         cmd: "packer build -var 'destination_path={{ dest_root }}' {{ ubuntu_packer_file }}"
       register: ubuntu_build

@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars:
-    rhel_packer_file: "rhel-baseline.pkr.hcl"
+    rhel_packer_file: "baseline-rhel.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
     dest_root: "{{ playbook_dir }}/baseline-iso/output-iso/redhat/rhel9"
     ansible_python_interpreter: /usr/bin/python3

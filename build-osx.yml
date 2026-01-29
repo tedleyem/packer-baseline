@@ -10,8 +10,8 @@
       - dnsmasq
       - xorriso
       - mkisofs
-    ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
-    rhel_packer_file: "rhel-baseline.pkr.hcl"
+    ubuntu_packer_file: "baseline-ubuntu.pkr.hcl"
+    rhel_packer_file: "baseline-rhel.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
     dest_root_ubuntu: "{{ playbook_dir }}/baseline-iso/ubuntu/2404"
     dest_root_rhel: "{{ playbook_dir }}/baseline-iso/rhel/9"
