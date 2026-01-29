@@ -49,10 +49,15 @@
         path: "{{ dest_root }}"
       register: mount_stat
 
-    - name: Fail if destination directory is missing
-      ansible.builtin.fail:
-        msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
+    - name: Create output dir if not found 
+      ansible.builtin.stat:
+        path: "{{ dest_root }}"
       when: not mount_stat.stat.exists or not mount_stat.stat.isdir
+
+#    - name: Fail if destination directory is missing
+#      ansible.builtin.fail:
+#        msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
+#      when: not mount_stat.stat.exists or not mount_stat.stat.isdir
 
     - name: Ensure destination directories exist
       file:

@@ -50,6 +50,11 @@
         state: directory
         mode: '0755'
 
+    - name: Create output dir if not found 
+      ansible.builtin.stat:
+        path: "{{ dest_root }}"
+      when: not mount_stat.stat.exists or not mount_stat.stat.isdir
+
     # Build Ubuntu 24.04 Baseline ISO
     - name: Build Ubuntu 24.04 Baseline ISO - Initialize Packer
       ansible.builtin.command:

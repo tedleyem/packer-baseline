@@ -5,7 +5,7 @@
   vars:
     ubuntu_packer_file: "ubuntu-baseline.pkr.hcl"
     cache_dir: "{{ playbook_dir }}/.cache/packer"
-    dest_root: "{{ playbook_dir }}/baseline-iso/mnt/output-iso/ubuntu/2404"
+    dest_root: "{{ playbook_dir }}/output-iso/ubuntu"
     image_output: "ubuntu2404-custom.iso"
     ubuntu: "{{ ansible_distribution == 'Ubuntu' }}"
   tasks:
@@ -21,14 +21,13 @@
           - qemu-kvm
           - qemu-system-x86
           - qemu-utils
-          - smbios-utils
           - virt-install
           - virt-manager
           - virtinst
           - xorriso
         state: present
-        update_cache: yes
-      become: true
+      #  update_cache: yes
+      #become: true
       register: qemu_install
 
     # Enable and Start the libvirtd Service
@@ -37,31 +36,31 @@
         name: libvirtd
         state: started
         enabled: true
-      become: true
+      #become: true
 
     - name: Remove Packer cache directory before build
       ansible.builtin.file:
         path: "{{ cache_dir }}"
         state: absent
 
-    # Verify Mount Point for Destination Path
-    - name: Verify destination directory exists
+    # Verify Mount Point for Output Path
+    - name: Verify output directory exists
       ansible.builtin.stat:
         path: "{{ dest_root }}"
       register: mount_stat
 
-    - name: Fail if destination directory is missing
-      ansible.builtin.fail:
-        msg: "CRITICAL: {{ dest_root }} is missing. Ensure the ISO storage is mounted."
+    - name: Create output dir if not found 
+      ansible.builtin.stat:
+        path: "{{ dest_root }}"
       when: not mount_stat.stat.exists or not mount_stat.stat.isdir
 
-    # Ensure Destination Sub-directory Exists
-    - name: Ensure destination directories exist
+    # Ensure Output Sub-directory Exists
+    - name: Ensure Output directories exist
       ansible.builtin.file:
         path: "{{ dest_root }}"
         state: directory
         mode: '0755'
-      become: true
+      #become: true
 
     # Initialize Packer dependancies for Custom Image
     - name: Build Ubuntu 24.04 Baseline ISO
