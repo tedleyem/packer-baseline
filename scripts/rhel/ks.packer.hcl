@@ -4,6 +4,10 @@ text  # Use text mode for faster automated installs
 cdrom
 firstboot --disable
 
+
+# Set root password 
+rootpw --plaintext ${ssh_password}
+
 # Enable SSH for Packer
 services --enabled="sshd"
 
