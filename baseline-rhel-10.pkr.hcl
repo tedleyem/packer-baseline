@@ -50,7 +50,18 @@ source "qemu" "rhel" {
   ssh_username     = "root"
   ssh_password     = var.ssh_password
   ssh_timeout      = "3m" 
-  http_directory   = "./scripts/rhel"
+  #http_directory   = "./scripts/rhel"
+  # Complexity, render the template file to set password in ks.cfg
+  http_content = {
+    "/ks.cfg" = templatefile("${path.root}/scripts/rhel/ks.packer.hcl", {
+      ssh_password = var.ssh_password
+      })
+      }
+  boot_command = [
+    "<tab><wait>",
+    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg",
+    "<enter>"
+  ]
   boot_command = [
     "<tab><wait>",
     " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg",

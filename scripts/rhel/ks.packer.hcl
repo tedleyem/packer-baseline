@@ -4,22 +4,26 @@ text  # Use text mode for faster automated installs
 cdrom
 firstboot --disable
 
-
 # Set root password 
 rootpw --plaintext ${ssh_password}
+
+timezone America/New_York --utc
 
 # Enable SSH for Packer
 services --enabled="sshd"
 
 # KR 2.2: Consistent Partitioning
-ignoredisk --only-use=nvme0n1
-clearpart --linux --drives=nvme0n1 --initlabel
+ignoredisk --only-use=vda
+clearpart --linux --drives=vda --initlabel
+
+# Network initiailization 
+network --bootproto=dhcp
 
 # Bootloader & Partitioning (Matches your Splunk requirements)
-part /boot --fstype="xfs" --ondisk=nvme0n1 --size=1024
-part /boot/efi --fstype="efi" --ondisk=nvme0n1 --size=600 --fsoptions="umask=0077,shortname=winnt"
-part pv.01 --fstype="lvmpv" --ondisk=nvme0n1 --size=81928
-part pv.02 --fstype="lvmpv" --ondisk=nvme0n1 --size=204804
+part /boot --fstype="xfs" --ondisk=vda --size=1024
+part /boot/efi --fstype="efi" --ondisk=vda --size=600 --fsoptions="umask=0077,shortname=winnt"
+part pv.01 --fstype="lvmpv" --ondisk=vda --size=81928
+part pv.02 --fstype="lvmpv" --ondisk=vda --size=204804
 
 volgroup vg_os pv.01
 volgroup vg_data pv.02
@@ -31,10 +35,6 @@ logvol /var/log --fstype="xfs" --name=log --vgname=vg_os --size=10240
 logvol /var/log/audit --fstype="xfs" --name=audit --vgname=vg_os --size=5120
 logvol /var/tmp --fstype="xfs" --name=tmp --vgname=vg_os --size=5120
 logvol /opt --fstype="xfs" --name=opt --vgname=vg_os --size=20480
-logvol /opt/splunk --fstype="xfs" --name=opt_splunk --vgname=vg_data --size=204800
-
-timezone America/New_York --utc
-rootpw --iscrypted $6$qIITuNbVy5YxGuZF$rZqqPZEBmvHCGWWwjA1lDAzkPdW53dLOP1TmQ5w4/uZ0SX0exOKODsR0z1Y0pCisKcHH3MUQMN3bbelX/FWjM0
 
 # KR 3.1: Minimal Package Set
 %packages
@@ -45,3 +45,12 @@ ansible-core
 %end
 
 %post --log=/var/log/ks-post.log
+# Force permit root login for Packer
+sed -i 's/^.*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+systemctl enable sshd
+systemctl restart sshd
+
+# 3. Open the firewall (if enabled)
+firewall-offline-cmd --add-service=ssh
+%end

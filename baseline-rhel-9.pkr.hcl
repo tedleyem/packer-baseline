@@ -49,19 +49,26 @@ source "qemu" "rhel" {
   communicator = "ssh"
   ssh_username     = "root"
   ssh_password     = var.ssh_password
-  ssh_timeout      = "3m" 
-  http_directory   = "./scripts/rhel"
+  ssh_timeout      = "30m"
+  net_device       = "virtio-net"
+  boot_wait      = "15s"
+  disk_size      = 50000    # 50GB disk size
+  memory         = 4096     # 4GB Memory
+  cpus           = 2        # 2 CPUs
+  cpu_model      = "host"
+  accelerator    = "kvm" #switch to hvf on mac
+  output_directory = "/tmp/rhel-build-output"
+  #headless         = true
+  http_content = {
+    "/ks.cfg" = templatefile("${path.root}/scripts/rhel/ks.packer.hcl", {
+      ssh_password = var.ssh_password
+      })
+      }
   boot_command = [
     "<tab><wait>",
-    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg",
+    " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg console=ttyS0",
     "<enter>"
   ]
-  boot_wait      = "5s"
-  disk_size      = 50000    # 20GB disk size
-  memory         = 2048     # 2GB Memory
-  cpus           = 2        # 2 CPUs
-  output_directory = "/tmp/rhel-build-output" # Temporary build artifacts
-  headless         = true
 }
 
 build {

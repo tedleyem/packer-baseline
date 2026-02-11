@@ -49,4 +49,4 @@ echo "Building $DISTRO image..."
 echo "Target: $DEST_PATH"
 
 # run the Packer build
-packer build -var "destination_path=${DEST_PATH}" "$PKR_FILE"
+PACKER_LOG=1 packer build -var "destination_path=${DEST_PATH}" "$PKR_FILE"
