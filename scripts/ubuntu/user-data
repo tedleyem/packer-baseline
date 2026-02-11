@@ -4,15 +4,26 @@ autoinstall:
   identity:
     hostname: ubuntu-baseline
     username: ubuntu
-    password: "password"
+    password: "$6$ojpWLfpl0oeSKLrt$e64NorraTB86wySZ6ctFkhl9Svu6.0N7YCgDZimeX8boGLzAxQflI0uLTf/n0Zli4v1FsHk7N7Y73ARH3gjeN0"
+#    The issue is likely the password format in your user-data.
+# --
+# Ubuntu's autoinstall (via subiquity) expects a hashed password, not cleartext. When you provide "password", the system tries to match your login against the literal hash string "password", which will always fail, preventing SSH from authenticating.
+# Hash your password
+# --
+#You need to provide an OpenSSL-compatible hash (SHA-512). You can generate one on your terminal:
+#openssl passwd -6 password
+
   storage:
     layout:
       name: direct
   ssh:
     install-server: true
     allow-pw: true
+    authorized-keys: # If you want to added one for ansible usage
   user-data:
     disable_root: false
+    ssh_pwauth: true
   late-commands:
     - "echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu"
     - "chmod 440 /target/etc/sudoers.d/ubuntu"
+    - "curtin in-target -- target systemctl enable ssh"

@@ -1,0 +1,18 @@
+{
+    "x86_64": [
+        {
+            "name": "baseos",
+            "baseurl": "https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os",
+            "gpgkey": "https://www.redhat.com/security/data/fd431d51.txt",
+            "check_gpg": true,
+            "rhsm": true
+        },
+        {
+            "name": "appstream",
+            "baseurl": "https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os",
+            "gpgkey": "https://www.redhat.com/security/data/fd431d51.txt",
+            "check_gpg": true,
+            "rhsm": true
+        }
+    ]
+}

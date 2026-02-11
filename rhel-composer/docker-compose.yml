@@ -1,0 +1,24 @@
+services:
+  composer-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.composer
+    privileged: true
+    volumes:
+      - ./output:/var/lib/osbuild-composer/exports
+      # Mount host RHEL subscriptions if available:
+      - /etc/pki/entitlement:/etc/pki/entitlement:ro
+      - /etc/rhsm:/etc/rhsm:ro
+    container_name: composer-server
+
+  composer-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.composer
+    volumes:
+      - .:/blueprints
+      - ./output:/output
+    depends_on:
+      - composer-server
+    network_mode: "service:composer-server"
+    entrypoint: ["/usr/bin/composer-cli"]

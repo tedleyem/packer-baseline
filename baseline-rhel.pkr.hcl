@@ -46,6 +46,7 @@ source "qemu" "rhel" {
   memory         = 2048     # 2GB Memory
   cpus           = 2        # 2 CPUs
   output_directory = "/tmp/rhel-build-output" # Temporary build artifacts
+  headless         = true
 }
 
 build {

@@ -35,11 +35,12 @@ variable "iso_checksum" {
 source "qemu" "ubuntu-24-04" {
   iso_url          = var.iso_url
   iso_checksum     = var.iso_checksum
-  output_directory = "output-ubuntu-2404"
+  output_directory = "output-iso/ubuntu/2404"
   shutdown_command = "echo '${var.ssh_password}' | sudo -S shutdown -P now"
   ssh_username     = "ubuntu"
   ssh_password     = var.ssh_password
-  ssh_timeout      = "30m"
+  ssh_timeout      = "10m"
+  ssh_handshake_attempts = 100
   cpus             = 2
   memory           = 2048
   disk_size        = "20000"
@@ -48,7 +49,7 @@ source "qemu" "ubuntu-24-04" {
   net_device       = "virtio-net"
   disk_interface   = "virtio"
   http_directory = "scripts/ubuntu"
-  #headless         = true
+  headless         = true
   boot_wait = "10s"
   boot_command = [
     "c<wait>",

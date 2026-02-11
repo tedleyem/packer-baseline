@@ -1,0 +1,13 @@
+name = "rhel-baseline"
+description = "A minimal RHEL baseline image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[[packages]]
+name = "ssh-key-dir"
+version = "*"
+
+[[packages]]
+name = "rsync"
+version = "*"
