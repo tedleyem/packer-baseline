@@ -15,7 +15,13 @@ case "$1" in
         DISTRO="ubuntu"
         ;;
     --rhel)
-        DISTRO="rhel"
+        DISTRO="rhel-9"
+        ;;
+    --rhel-9)
+        DISTRO="rhel-9"
+        ;;
+    --rhel-10)
+        DISTRO="rhel-10"
         ;;
     --dsl)
         DISTRO="dsl"

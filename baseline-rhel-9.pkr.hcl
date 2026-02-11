@@ -19,9 +19,10 @@ variable "ssh_password" {
 
 variable "destination_path" {
   type    = string
-  default = "./output-iso/rhel"
+  default = "./output-iso/rhel/nine"
 }
 
+/*
 variable "iso_url" {
   type    = string
   default = "https://gitlab.com/tedleyem/repo.meralus.dev/-/package_files/258387539/download"
@@ -31,11 +32,25 @@ variable "iso_checksum" {
   type    = string
   default = "file:https://gitlab.com/tedleyem/repo.meralus.dev/-/raw/master/checksums/rhel/SHA256SUMS?ref_type=heads&inline=false"
 }
+*/
+variable "iso_url" {
+  type    = string
+  default = "build-isos/rhel-9.7-x86_64-boot.iso"
+}
+
+variable "iso_checksum" {
+  type    = string
+  default = "11b56483dd1c69ddf46832becd195d68b67b4472fcfade1ac4b27c57c72f773e"
+}
 
 source "qemu" "rhel" {
   iso_url      = var.iso_url
   iso_checksum = var.iso_checksum
-  communicator = "none" # No clean OS with SSH ensures we only stage the ISO
+  communicator = "ssh"
+  ssh_username     = "root"
+  ssh_password     = var.ssh_password
+  ssh_timeout      = "3m" 
+  http_directory   = "./scripts/rhel"
   boot_command = [
     "<tab><wait>",
     " inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg",
