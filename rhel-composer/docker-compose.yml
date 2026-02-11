@@ -7,8 +7,8 @@ services:
     volumes:
       - ./output:/var/lib/osbuild-composer/exports
       # Mount host RHEL subscriptions if available:
-      - /etc/pki/entitlement:/etc/pki/entitlement:ro
-      - /etc/rhsm:/etc/rhsm:ro
+      #- /etc/pki/entitlement:/etc/pki/entitlement:ro
+      #- /etc/rhsm:/etc/rhsm:ro
     container_name: composer-server
 
   composer-cli:
@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: Dockerfile.composer
     volumes:
-      - .:/blueprints
+      - ./blueprints:/blueprints
       - ./output:/output
     depends_on:
       - composer-server
