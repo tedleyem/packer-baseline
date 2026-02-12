@@ -1,0 +1,51 @@
+name = "rhel-hardened-baseline"
+description = "Hardened RHEL baseline adhering to CIS and NIST standards"
+version = "0.1.0"
+modules = []
+groups = []
+
+# --- Remote Access & File Transfer ---
+[[packages]]
+name = "openssh-server"
+version = "*"
+
+[[packages]]
+name = "rsync"
+version = "*"
+
+# --- Auditing & Monitoring (CIS Section 4) ---
+[[packages]]
+name = "audit"
+version = "*"
+
+[[packages]]
+name = "rsyslog"
+version = "*"
+
+# --- System Integrity (CIS Section 1) ---
+[[packages]]
+name = "aide" # Advanced Intrusion Detection Environment
+version = "*"
+
+[[packages]]
+name = "libselinux"
+version = "*"
+
+# --- Maintenance & Policy ---
+[[packages]]
+name = "policycoreutils" # For SELinux management
+version = "*"
+
+[[packages]]
+name = "dnf-automatic" # Ensures security patches are automated
+version = "*"
+
+#[[customizations.user]]
+#name = "admin-user"
+#description = "System Administrator"
+#password = #"$6$rounds=4096$randomsalt$hashedpassword" # 
+#groups = ["wheel"]
+#key = "ssh-rsa AAAAB3Nza... user@host" 
+
+[customizations.services]
+enabled = ["sshd"]
