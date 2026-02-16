@@ -4,3 +4,5 @@ iso/*
 TODO.md
 blog.md
 build-isos
+LUKS.md
+scripts/rhel/rhel-secrets
